@@ -1,33 +1,44 @@
+import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 mpl.rcParams['lines.linewidth'] = 0.8
 plt.rcParams["figure.autolayout"] = True
-ratio = 0.7
-width = 6
 dpi = 750
 form = "png"
 
+# Load spring data from springs.txt
+springs_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "springs.txt")
+springs = {}
+with open(springs_file) as f:
+    next(f)  # skip header
+    for line in f:
+        parts = line.strip().split("\t")
+        springs[parts[0].lower()] = {
+            "max_rotation_deg": float(parts[1]),
+            "max_torque_nmm": float(parts[2]),
+        }
+
+if len(sys.argv) > 1:
+    key = sys.argv[1].lower()
+else:
+    print("Specify a spring to load from springs.txt")
+    sys.exit(1)
+
+if key not in springs:
+    print(f"Error: '{key}' not found in springs.txt")
+    print(f"Available springs: {', '.join(sorted(springs.keys()))}")
+    sys.exit(1)
+
 # Spring parameters
-spring_name = "spf-0931"
-max_torque_10000_cycles_nm = 18.667
-max_rotation_10000_cycles_deg = 663
+spring_name = key
+max_torque_10000_cycles_nm = springs[key]["max_torque_nmm"] / 1000.0
+max_rotation_10000_cycles_deg = springs[key]["max_rotation_deg"]
 power_per_degree_nm_per_deg = max_torque_10000_cycles_nm / max_rotation_10000_cycles_deg
 # Integrate torque over angle with the degree-to-radian conversion.
 stored_energy_j = 0.5 * power_per_degree_nm_per_deg * (max_rotation_10000_cycles_deg ** 2) * np.pi / 180.0
-
-# torque as a function of rotation
-#plt.figure().set_size_inches(width, width*ratio)
-#rotation_array_deg = np.linspace(0, max_rotation_10000_cycles_deg, 500)
-#torque_array_nm = power_per_degree_nm_per_deg * rotation_array_deg
-#plt.plot(rotation_array_deg, torque_array_nm, label="Torque [Nm] vs Rotation [°]", color="navy")
-#plt.xlabel("Rotation [°]")
-#plt.ylabel("Torque [Nm]")
-#plt.title(f"Torque vs Rotation for {spring_name}")
-#plt.legend(loc="upper left")
-#plt.grid()
-#plt.show()
 
 # 3D plot of max force transferred to the ground as a function of gear ratio and wheel diameter
 n_points = 40
@@ -53,7 +64,7 @@ available_wheel_energy_j = stored_energy_j * drivetrain_efficiency
 predicted_max_speed_m_s = np.sqrt(2 * available_wheel_energy_j / vehicle_mass_kg)
 predicted_max_speed_kmh = predicted_max_speed_m_s * 3.6
 
-gear_ratio_example = 60
+gear_ratio_example = 25
 wheel_diameter_example_mm = 140
 wheel_radius_example_m = wheel_diameter_example_mm / 2000.0
 
@@ -157,7 +168,6 @@ force_mask_ge = np.ma.masked_greater_equal(max_force_ground_n, force_threshold)
 
 # 3D surface plot
 fig = plt.figure()
-fig.set_size_inches(width, width * ratio)
 ax = fig.add_subplot(111, projection='3d')
 ax.view_init(elev=32, azim=37)
 
@@ -204,7 +214,8 @@ ax.text2D(0.02, 0.97, f'Traction limit: {force_threshold:.2f} N\nEfficiency: {dr
 fig.colorbar(surf, shrink=0.5, aspect=5)
 
 plt.tight_layout()
-plt.show()
+plt.savefig(f'graphs/{spring_name}_traction_surface.{form}', dpi=dpi)
+plt.close(fig)
 
 # Vehicle kinematics
 def x_of_t(t, rho, R, theta0_deg=max_rotation_10000_cycles_deg, m=vehicle_mass_kg, k_theta=power_per_degree_nm_per_deg, eta=drivetrain_efficiency):
@@ -238,7 +249,6 @@ t_release_example = release_time_of_t(gear_ratio_example, wheel_radius_example_m
 t_array = np.linspace(0, t_release_example, 500)
 
 fig, (ax_x, ax_v, ax_a) = plt.subplots(3, 1, sharex=True)
-fig.set_size_inches(width, width * 1.35)
 
 x_array = x_of_t(t_array, gear_ratio_example, wheel_radius_example_m)
 v_array = v_of_t(t_array, gear_ratio_example, wheel_radius_example_m)
@@ -298,3 +308,6 @@ ax_v.legend(loc="lower right")
 
 plt.tight_layout()
 plt.show()
+plt.savefig(f'graphs/{spring_name}_release_response.{form}', dpi=dpi)
+plt.show()
+plt.close(fig)
