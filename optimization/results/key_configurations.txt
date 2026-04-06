@@ -1,0 +1,67 @@
+====================================================================
+  KEY CONFIGURATIONS  (from Pareto front)
+====================================================================
+
+  FASTEST
+    Spring   : SPF-0939 (1547 g)
+    Vehicle  : 1.50 kg  |  Total: 3.05 kg
+    Gearing  : ratio 62.0  |  wheel D 195 mm
+    Speed    : 49.10 km/h
+    Target   : reached in 1.40 s / 2.93 m
+    Traction : 0.05 N margin (0.6%)
+
+  LIGHTEST
+    Spring   : SPF-0925 (106 g)
+    Vehicle  : 1.50 kg  |  Total: 1.61 kg
+    Gearing  : ratio 16.0  |  wheel D 192 mm
+    Speed    : 18.78 km/h
+    Target   : reached in 1.60 s / 3.59 m
+    Traction : 0.05 N margin (1.0%)
+
+  SIMPLEST GEARING
+    Spring   : SPF-0926 (146 g)
+    Vehicle  : 1.50 kg  |  Total: 1.65 kg
+    Gearing  : ratio 10.0  |  wheel D 200 mm
+    Speed    : 21.95 km/h
+    Target   : reached in 1.52 s / 3.32 m
+    Traction : 0.06 N margin (1.1%)
+
+  BALANCED  (score 0.116)
+    Spring   : SPF-0930 (302 g)
+    Vehicle  : 1.50 kg  |  Total: 1.80 kg
+    Gearing  : ratio 20.0  |  wheel D 199 mm
+    Speed    : 29.28 km/h
+    Target   : reached in 1.52 s / 3.25 m
+    Traction : 0.32 N margin (5.9%)
+
+====================================================================
+  TOP 5 RANKINGS  (Pareto-optimal only)
+====================================================================
+
+  Ranked by Peak Speed (descending)
+   #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
+  ----------------------------------------------------------------------------------
+   1  SPF-0939    1547     1.50     3.05   62.0    199   49.10    1.42    2.99
+   2  SPF-0939    1547     1.50     3.05   62.0    195   49.10    1.40    2.93
+   3  SPF-0939    1547     1.50     3.05   62.0    198   49.10    1.42    2.98
+   4  SPF-0939    1547     1.50     3.05   62.0    196   49.10    1.40    2.95
+   5  SPF-0939    1547     1.50     3.05   62.0    197   49.10    1.41    2.96
+
+  Ranked by Total Mass (ascending)
+   #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
+  ----------------------------------------------------------------------------------
+   1  SPF-0925     106     1.50     1.61   16.0    191   18.78    1.59    3.57
+   2  SPF-0925     106     1.50     1.61   16.0    193   18.78    1.61    3.61
+   3  SPF-0925     106     1.50     1.61   16.0    198   18.78    1.65    3.70
+   4  SPF-0925     106     1.50     1.61   16.0    197   18.78    1.64    3.68
+   5  SPF-0925     106     1.50     1.61   16.0    199   18.78    1.66    3.72
+
+  Ranked by Gear Ratio (ascending)
+   #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
+  ----------------------------------------------------------------------------------
+   1  SPF-0923     124     1.50     1.62   10.0    194   20.32    1.78    3.94
+   2  SPF-0923     124     1.50     1.62   10.0    190   20.32    1.75    3.86
+   3  SPF-0923     124     1.50     1.62   10.0    191   20.32    1.76    3.88
+   4  SPF-0923     124     1.50     1.62   10.0    192   20.32    1.77    3.90
+   5  SPF-0923     124     1.50     1.62   10.0    188   20.32    1.73    3.82
+

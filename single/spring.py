@@ -1,5 +1,6 @@
 import sys
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -9,8 +10,41 @@ plt.rcParams["figure.autolayout"] = True
 dpi = 750
 form = "png"
 
-# Load spring data from springs.txt
-springs_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "springs.txt")
+# ═══════════════════════════════════════════════════════════════════════════
+# Parse command-line arguments
+# ═══════════════════════════════════════════════════════════════════════════
+
+parser = argparse.ArgumentParser(
+    description="Analyze a single spring configuration for a spring-powered vehicle"
+)
+parser.add_argument(
+    "spring",
+    help="Spring part number to analyze (e.g., spf-0927)"
+)
+parser.add_argument(
+    "-i", "--interactive",
+    action="store_true",
+    help="Show plots interactively as they are being saved (default: False)"
+)
+parser.add_argument(
+    "-f", "--file",
+    default="springs.txt",
+    metavar="SPRINGS_FILE",
+    help="Spring data file to load (default: springs.txt)"
+)
+args = parser.parse_args()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Load spring data
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Use absolute path if provided, otherwise relative to script directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.isabs(args.file):
+    springs_file = args.file
+else:
+    springs_file = os.path.join(script_dir, args.file)
+
 springs = {}
 with open(springs_file) as f:
     next(f)  # skip header
@@ -21,14 +55,10 @@ with open(springs_file) as f:
             "max_torque_nmm": float(parts[2]),
         }
 
-if len(sys.argv) > 1:
-    key = sys.argv[1].lower()
-else:
-    print("Specify a spring to load from springs.txt")
-    sys.exit(1)
+key = args.spring.lower()
 
 if key not in springs:
-    print(f"Error: '{key}' not found in springs.txt")
+    print(f"Error: '{key}' not found in {springs_file}")
     print(f"Available springs: {', '.join(sorted(springs.keys()))}")
     sys.exit(1)
 
@@ -215,6 +245,8 @@ fig.colorbar(surf, shrink=0.5, aspect=5)
 
 plt.tight_layout()
 plt.savefig(f'graphs/{spring_name}_traction_surface.{form}', dpi=dpi)
+if args.interactive:
+    plt.show()
 plt.close(fig)
 
 # Vehicle kinematics
@@ -307,7 +339,7 @@ ax_x.set_title(f"Spring release response for {spring_name}")
 ax_v.legend(loc="lower right")
 
 plt.tight_layout()
-plt.show()
 plt.savefig(f'graphs/{spring_name}_release_response.{form}', dpi=dpi)
-plt.show()
+if args.interactive:
+    plt.show()
 plt.close(fig)

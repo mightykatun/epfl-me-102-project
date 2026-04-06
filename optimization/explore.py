@@ -15,21 +15,59 @@ Hard constraints (both must hold):
   2. Sufficient spring energy to reach target speed (with safety factor)
 
 Usage:
-    python explore.py
+    python explore.py [-i] [-f SPRINGS_FILE]
 """
 
 import os
 import csv
+import warnings
+import argparse
 import numpy as np
 
 import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (enables 3D projection)
+
+warnings.filterwarnings("ignore", message="delta_grad == 0.0")
+warnings.filterwarnings("ignore", message=".*tight_layout.*")
+
 from scipy.optimize import differential_evolution, NonlinearConstraint
 
 import spring_model as sm
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Parse command-line arguments
+# ═══════════════════════════════════════════════════════════════════════════
+
+parser = argparse.ArgumentParser(
+    description="Multi-objective optimization of spring-powered vehicle drivetrain"
+)
+parser.add_argument(
+    "-i", "--interactive",
+    action="store_true",
+    help="Show plots interactively as they are being saved (default: False)"
+)
+parser.add_argument(
+    "-f", "--file",
+    default="springs.txt",
+    metavar="SPRINGS_FILE",
+    help="Spring data file to load (default: springs.txt)"
+)
+args = parser.parse_args()
+
+# Set matplotlib backend based on interactive flag
+if not args.interactive:
+    matplotlib.use("Agg")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Output directories
+# ═══════════════════════════════════════════════════════════════════════════
+
+SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+GRAPHS_DIR  = os.path.join(SCRIPT_DIR, "graphs")
+os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(GRAPHS_DIR,  exist_ok=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Constants  (same values as spring.py)
@@ -43,13 +81,18 @@ DRIVETRAIN_EFF   = 0.92
 N_WHEELS         = 3
 N_DRIVING_WHEELS = 2
 GRAVITY          = 9.81
-DPI              = 300
+DPI              = 600
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Load spring catalogue
 # ═══════════════════════════════════════════════════════════════════════════
 
-SPRINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "springs.txt")
+# Use absolute path if provided, otherwise relative to script directory
+if os.path.isabs(args.file):
+    SPRINGS_FILE = args.file
+else:
+    SPRINGS_FILE = os.path.join(SCRIPT_DIR, args.file)
+
 springs_data = sm.load_springs(SPRINGS_FILE)
 spring_names = sorted(springs_data.keys())
 N_SPRINGS    = len(spring_names)
@@ -193,10 +236,10 @@ F_ac   = ac_flat  [mask].copy()
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Save the full feasible grid to results.csv, sorted by peak speed.
-print(f"Saving results.csv ({n_feas:,} rows) ...")
+print(f"Saving all_feasible.csv ({n_feas:,} rows) ...")
 sort_idx = np.argsort(-F_spd)
 
-with open("results.csv", "w", newline="") as fh:
+with open(os.path.join(RESULTS_DIR, "all_feasible.csv"), "w", newline="") as fh:
     writer = csv.writer(fh)
     writer.writerow(["spring", "vehicle_mass_kg", "spring_mass_kg",
                      "total_mass_kg", "gear_ratio", "wheel_diam_mm",
@@ -418,10 +461,14 @@ P_mp   = A_mp  [pareto_idx];  P_ac   = A_ac  [pareto_idx]
 # Save pareto.csv
 # ═══════════════════════════════════════════════════════════════════════════
 
-print(f"Saving pareto.csv ({n_pareto:,} rows) ...")
+# ═══════════════════════════════════════════════════════════════════════════
+# Save pareto CSV
+# ═══════════════════════════════════════════════════════════════════════════
+
+print(f"Saving pareto_optimal.csv ({n_pareto:,} rows) ...")
 p_sort = np.argsort(-P_spd)
 
-with open("pareto.csv", "w", newline="") as fh:
+with open(os.path.join(RESULTS_DIR, "pareto_optimal.csv"), "w", newline="") as fh:
     writer = csv.writer(fh)
     writer.writerow(["spring", "vehicle_mass_kg", "spring_mass_kg",
                      "total_mass_kg", "gear_ratio", "wheel_diam_mm",
@@ -438,214 +485,279 @@ with open("pareto.csv", "w", newline="") as fh:
         ])
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Print top-5 summary
+# Key configurations + Top-5 rankings  (printed AND saved to txt)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _row_str(idx):
-    return (f"  {spring_names[int(P_s[idx])]:>8s} "
-            f"({P_sm[idx]*1000:.0f} g)  "
-            f"veh={P_vm[idx]:.2f} tot={P_tm[idx]:.2f} kg  "
-            f"rho={P_rho[idx]:.1f}  D={P_diam[idx]:.0f} mm  |  "
-            f"spd={P_spd[idx]:.2f} km/h  "
-            f"t={P_tt[idx]:.2f} s  d={P_dt[idx]:.2f} m")
+def _cfg_block(tag, idx):
+    """Format a single configuration block."""
+    s = spring_names[int(P_s[idx])].upper()
+    return (
+        f"  {tag}\n"
+        f"    Spring   : {s} ({P_sm[idx]*1000:.0f} g)\n"
+        f"    Vehicle  : {P_vm[idx]:.2f} kg  |  Total: {P_tm[idx]:.2f} kg\n"
+        f"    Gearing  : ratio {P_rho[idx]:.1f}  |  wheel D {P_diam[idx]:.0f} mm\n"
+        f"    Speed    : {P_spd[idx]:.2f} km/h\n"
+        f"    Target   : reached in {P_tt[idx]:.2f} s / {P_dt[idx]:.2f} m\n"
+        f"    Traction : {P_mn[idx]:.2f} N margin ({P_mp[idx]:.1f}%)\n"
+    )
 
-print("\n=== Top 5 by Peak Speed ===")
-for i in np.argsort(-P_spd)[:5]:
-    print(_row_str(i))
+def _table_header():
+    return (
+        f"  {'#':>2s}  {'Spring':>8s}  {'Spr(g)':>6s}  {'Veh(kg)':>7s}  "
+        f"{'Tot(kg)':>7s}  {'Ratio':>5s}  {'D(mm)':>5s}  "
+        f"{'Speed':>7s}  {'Time':>6s}  {'Dist':>6s}\n"
+        + "  " + "-" * 82
+    )
 
-print("\n=== Top 5 by Minimum Total Mass ===")
-for i in np.argsort(P_tm)[:5]:
-    print(_row_str(i))
+def _table_row(rank, idx):
+    return (
+        f"  {rank:>2d}  {spring_names[int(P_s[idx])].upper():>8s}  "
+        f"{P_sm[idx]*1000:>6.0f}  {P_vm[idx]:>7.2f}  {P_tm[idx]:>7.2f}  "
+        f"{P_rho[idx]:>5.1f}  {P_diam[idx]:>5.0f}  "
+        f"{P_spd[idx]:>6.2f}  {P_tt[idx]:>6.2f}  {P_dt[idx]:>6.2f}"
+    )
 
-print("\n=== Top 5 by Minimum Gear Ratio ===")
-for i in np.argsort(P_rho)[:5]:
-    print(_row_str(i))
+# --- Identify key configurations ---
+
+i_fastest  = np.argmax(P_spd)
+i_lightest = np.argmin(P_tm)
+i_simplest = np.argmin(P_rho)
+
+# Balanced: normalise the 3 objectives to [0,1] and pick the point that
+# maximises (norm_speed - norm_mass - norm_ratio), i.e. equal weight to each.
+p_spd_n = (P_spd - P_spd.min()) / max(P_spd.max() - P_spd.min(), 1e-12)
+p_tm_n  = (P_tm  - P_tm.min())  / max(P_tm.max()  - P_tm.min(),  1e-12)
+p_rho_n = (P_rho - P_rho.min()) / max(P_rho.max() - P_rho.min(), 1e-12)
+balanced_score = p_spd_n - p_tm_n - p_rho_n
+i_balanced = np.argmax(balanced_score)
+
+# --- Build text ---
+
+lines = []
+lines.append("=" * 68)
+lines.append("  KEY CONFIGURATIONS  (from Pareto front)")
+lines.append("=" * 68)
+lines.append("")
+lines.append(_cfg_block("FASTEST", i_fastest))
+lines.append(_cfg_block("LIGHTEST", i_lightest))
+lines.append(_cfg_block("SIMPLEST GEARING", i_simplest))
+lines.append(_cfg_block(
+    f"BALANCED  (score {balanced_score[i_balanced]:.3f})", i_balanced))
+
+lines.append("=" * 68)
+lines.append("  TOP 5 RANKINGS  (Pareto-optimal only)")
+lines.append("=" * 68)
+
+for title, indices in [
+    ("Ranked by Peak Speed (descending)", np.argsort(-P_spd)[:5]),
+    ("Ranked by Total Mass (ascending)",  np.argsort(P_tm) [:5]),
+    ("Ranked by Gear Ratio (ascending)",  np.argsort(P_rho)[:5]),
+]:
+    lines.append(f"\n  {title}")
+    lines.append(_table_header())
+    for rank, i in enumerate(indices, 1):
+        lines.append(_table_row(rank, i))
+
+lines.append("")
+
+report = "\n".join(lines)
+print("\n" + report)
+
+with open(os.path.join(RESULTS_DIR, "key_configurations.txt"), "w") as fh:
+    fh.write(report + "\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Plots — show full feasible manifold + Pareto front highlighted
+# Plots
 # ═══════════════════════════════════════════════════════════════════════════
 
-print("\nGenerating plots ...")
+print("Generating plots ...")
+
+# -- Shared colour setup --
+# Remap colors to only span springs that appear on the Pareto front.
+pareto_spring_ids = np.unique(P_s.astype(int))
+n_pareto_springs  = len(pareto_spring_ids)
+
+# Create a lookup: original spring index -> color index [0, n_pareto_springs-1]
+spring_to_color = {sid: i for i, sid in enumerate(pareto_spring_ids)}
+
+def _map_spring_to_color(spring_indices):
+    """Map spring IDs to color indices [0, n_pareto_springs-1]."""
+    return np.array([spring_to_color.get(int(s), 0) for s in spring_indices])
 
 cmap = plt.cm.turbo
-norm = plt.Normalize(0, N_SPRINGS - 1)
+norm = plt.Normalize(0, n_pareto_springs - 1)
 
-def _add_spring_cbar(fig, ax_or_axes):
+def _add_spring_cbar(fig, ax_or_axes, *, pad=0.08):
     sm_cb = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm_cb.set_array([])
-    cbar = fig.colorbar(sm_cb, ax=ax_or_axes, shrink=0.6, pad=0.02)
-    tick_pos = np.arange(0, N_SPRINGS, max(1, N_SPRINGS // 10))
-    cbar.set_ticks(tick_pos)
-    cbar.set_ticklabels([spring_names[i].upper() for i in tick_pos])
-    cbar.set_label("Spring")
+    cbar = fig.colorbar(sm_cb, ax=ax_or_axes, shrink=0.55, pad=pad,
+                        aspect=30)
+    cbar.set_ticks(np.arange(n_pareto_springs))
+    cbar.set_ticklabels([spring_names[sid].upper() for sid in pareto_spring_ids])
+    cbar.ax.tick_params(labelsize=7)
+    cbar.set_label("Spring", fontsize=9)
     return cbar
 
-# Subsample the full manifold for plotting if very large
-MAX_BG = 8000
+# -- Subsample background feasible cloud --
+MAX_BG   = 8000
 rng_plot = np.random.default_rng(42)
 n_all    = len(A_s)
-if n_all > MAX_BG:
-    bg_idx = rng_plot.choice(n_all, MAX_BG, replace=False)
-else:
-    bg_idx = np.arange(n_all)
+bg_idx   = (rng_plot.choice(n_all, MAX_BG, replace=False)
+            if n_all > MAX_BG else np.arange(n_all))
 
-BG_s   = A_s[bg_idx];   BG_spd = A_spd[bg_idx]
-BG_tt  = A_tt[bg_idx];  BG_dt  = A_dt[bg_idx]
+BG_s   = A_s[bg_idx];    BG_spd  = A_spd[bg_idx]
+BG_tm  = A_tm[bg_idx];   BG_rho  = A_rho[bg_idx]
+BG_tt  = A_tt[bg_idx];   BG_dt   = A_dt[bg_idx]
+BG_vm  = A_vm[bg_idx];   BG_sm   = A_sm[bg_idx]
+BG_diam = A_diam[bg_idx]
 
+# ---- 1. 3D Pareto surface ------------------------------------------------
 
-# ---------- 1. 3D Pareto front ----------
+fig = plt.figure(figsize=(13, 9))
+ax  = fig.add_subplot(111, projection="3d")
+ax.view_init(elev=25, azim=135)
 
-BG_tm = A_tm[bg_idx]
-BG_rho = A_rho[bg_idx]
-
-fig = plt.figure(figsize=(12, 8))
-ax = fig.add_subplot(111, projection="3d")
-
-# background: all feasible (faint)
 ax.scatter(BG_spd, BG_tm, BG_rho,
-           c=BG_s.astype(int), cmap=cmap, norm=norm,
-           s=3, alpha=0.08, edgecolors="none")
-# Pareto front (bold)
+           c=_map_spring_to_color(BG_s), cmap=cmap, norm=norm,
+           s=2, alpha=0.06, edgecolors="none", rasterized=True)
 ax.scatter(P_spd, P_tm, P_rho,
-           c=P_s.astype(int), cmap=cmap, norm=norm,
-           s=25, alpha=0.9, edgecolors="k", linewidths=0.4)
+           c=_map_spring_to_color(P_s), cmap=cmap, norm=norm,
+           s=30, alpha=0.9, edgecolors="k", linewidths=0.35)
 
-ax.set_xlabel("Peak Speed [km/h]")
-ax.set_ylabel("Total Mass [kg]")
-ax.set_zlabel("Gear Ratio")
-ax.set_title("Pareto Front: Speed / Mass / Gear Ratio", fontweight="bold")
-_add_spring_cbar(fig, ax)
-plt.tight_layout()
-plt.savefig("pareto_3d.png", dpi=DPI)
+ax.set_xlabel("Peak Speed [km/h]",  fontsize=10, labelpad=10)
+ax.set_ylabel("Total Mass [kg]",    fontsize=10, labelpad=10)
+ax.set_zlabel("Gear Ratio",         fontsize=10, labelpad=8)
+ax.tick_params(labelsize=8)
+ax.grid(True, alpha=0.15)
+ax.set_title("Pareto Front: Speed / Mass / Gear Ratio", fontsize=12, fontweight="bold", pad=18)
+_add_spring_cbar(fig, ax, pad=0.12)
+
+# Annotation at bottom
+annotation = (f"Each point = feasible configuration (spring + vehicle mass + gearing). "
+              f"Bold markers = Pareto-optimal (no other config beats it on all 3 objectives). "
+              f"{n_feas:,} feasible → {n_pareto} Pareto.")
+fig.text(0.5, 0.01, annotation, ha="center", fontsize=7, 
+         style="italic", color="0.4", wrap=True)
+
+fig.subplots_adjust(left=0.05, right=0.82, top=0.92, bottom=0.06)
+plt.savefig(os.path.join(GRAPHS_DIR, "pareto_3d_speed_mass_ratio.png"), dpi=DPI)
+if args.interactive:
+    plt.show()
 plt.close(fig)
-print("  pareto_3d.png")
+print("  graphs/pareto_3d_speed_mass_ratio.png")
 
+# ---- 2. 2D projections ---------------------------------------------------
 
-# ---------- 2. 2D projections of the 3 objectives ----------
+fig, axes = plt.subplots(1, 3, figsize=(18, 5.5), constrained_layout=True)
 
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-
-pairs = [("Peak Speed [km/h]", "Total Mass [kg]"),
-         ("Peak Speed [km/h]", "Gear Ratio"),
-         ("Total Mass [kg]",   "Gear Ratio")]
-
-bg_arrs = [(BG_spd, BG_tm), (BG_spd, BG_rho), (BG_tm, BG_rho)]
-fg_arrs = [(P_spd,  P_tm),  (P_spd,  P_rho),  (P_tm,  P_rho)]
-
-for ax, (xl, yl), (bx, by), (fx, fy) in zip(axes, pairs, bg_arrs, fg_arrs):
-    ax.scatter(bx, by, c=BG_s.astype(int), cmap=cmap, norm=norm,
-               s=3, alpha=0.10, edgecolors="none")
-    ax.scatter(fx, fy, c=P_s.astype(int), cmap=cmap, norm=norm,
-               s=25, alpha=0.85, edgecolors="k", linewidths=0.5)
-    ax.set_xlabel(xl);  ax.set_ylabel(yl)
-    ax.grid(True, alpha=0.3)
-
-fig.suptitle("Pareto front — 2D projections of objectives", fontsize=13)
-_add_spring_cbar(fig, axes.tolist())
-plt.tight_layout()
-plt.savefig("pareto_2d_panels.png", dpi=DPI)
-plt.close(fig)
-print("  pareto_2d_panels.png")
-
-
-# ---------- 3. Top-20 tables ----------
-
-fig, axes = plt.subplots(3, 1, figsize=(16, 16))
-
-col_labels = ["#", "Spring", "Spr\n(g)", "Veh\n(kg)", "Tot\n(kg)",
-              "Ratio", "D (mm)",
-              "Speed\n(km/h)", "Time\n(s)", "Dist\n(m)",
-              "Margin\n(N)", "Accel\n(m/s\u00b2)"]
-
-table_specs = [
-    ("Top 20 Pareto — ranked by Peak Speed (descending)", np.argsort(-P_spd)[:20]),
-    ("Top 20 Pareto — ranked by Total Mass (ascending)",   np.argsort(P_tm) [:20]),
-    ("Top 20 Pareto — ranked by Gear Ratio (ascending)",   np.argsort(P_rho)[:20]),
+specs = [
+    ("Peak Speed [km/h]", "Total Mass [kg]",  BG_spd, BG_tm,  P_spd, P_tm),
+    ("Peak Speed [km/h]", "Gear Ratio",        BG_spd, BG_rho, P_spd, P_rho),
+    ("Total Mass [kg]",   "Gear Ratio",        BG_tm,  BG_rho, P_tm,  P_rho),
 ]
 
-for ax, (title, indices) in zip(axes, table_specs):
-    ax.axis("off")
-    ax.set_title(title, fontsize=11, fontweight="bold", pad=12)
-    rows = []
-    for rank, i in enumerate(indices, 1):
-        rows.append([
-            str(rank),
-            spring_names[int(P_s[i])].upper(),
-            f"{P_sm[i]*1000:.0f}",
-            f"{P_vm[i]:.2f}", f"{P_tm[i]:.2f}",
-            f"{P_rho[i]:.0f}", f"{P_diam[i]:.0f}",
-            f"{P_spd[i]:.2f}", f"{P_tt[i]:.2f}", f"{P_dt[i]:.2f}",
-            f"{P_mn[i]:.2f}", f"{P_ac[i]:.2f}",
-        ])
-    tbl = ax.table(cellText=rows, colLabels=col_labels, loc="center",
-                   cellLoc="center")
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(7)
-    tbl.scale(1.0, 1.3)
+for ax, (xl, yl, bx, by, fx, fy) in zip(axes, specs):
+    ax.scatter(bx, by, c=_map_spring_to_color(BG_s), cmap=cmap, norm=norm,
+               s=3, alpha=0.10, edgecolors="none", rasterized=True)
+    ax.scatter(fx, fy, c=_map_spring_to_color(P_s), cmap=cmap, norm=norm,
+               s=28, alpha=0.85, edgecolors="k", linewidths=0.4)
+    ax.set_xlabel(xl, fontsize=10)
+    ax.set_ylabel(yl, fontsize=10)
+    ax.tick_params(labelsize=8)
+    ax.grid(True, alpha=0.2)
+    ax.set_box_aspect(1)
 
-plt.tight_layout()
-plt.savefig("top20_table.png", dpi=DPI)
+fig.suptitle("Pareto Front: 2D Projections  (bold = Pareto, faint = feasible)", fontsize=12, fontweight="bold")
+_add_spring_cbar(fig, axes, pad=0.01)
+
+# Annotation at bottom
+annotation = (f"Three 2D slices of the 3-objective Pareto front. "
+              f"Each projection shows the trade-off between two objectives. "
+              f"Colors indicate which spring is used. "
+              f"Bold markers = Pareto-optimal")
+fig.text(0.5, -0.02, annotation, ha="center", fontsize=7, 
+         style="italic", color="0.4", wrap=True, transform=fig.transFigure)
+plt.savefig(os.path.join(GRAPHS_DIR, "pareto_2d_projections.png"), dpi=DPI, bbox_inches='tight')
+if args.interactive:
+    plt.show()
 plt.close(fig)
-print("  top20_table.png")
+print("  graphs/pareto_2d_projections.png")
 
+# ---- 3. Parallel coordinates ---------------------------------------------
 
-# ---------- 4. Parallel coordinates ----------
-
-fig, ax = plt.subplots(figsize=(14, 6))
+fig, ax = plt.subplots(figsize=(15, 6.5))
+fig.subplots_adjust(left=0.04, right=0.86, top=0.88, bottom=0.15)
 
 pc_labels = ["Veh mass\n(kg)", "Spring\nmass (g)", "Total\nmass (kg)",
-             "Gear ratio", "Wheel D\n(mm)",
+             "Gear\nratio", "Wheel D\n(mm)",
              "Speed\n(km/h)", "Time\n(s)", "Dist\n(m)"]
 
-# Foreground: Pareto points.  Background: subsample of all feasible.
-pc_fg = np.column_stack([P_vm, P_sm * 1000, P_tm, P_rho, P_diam,
-                         P_spd, P_tt, P_dt])
-pc_bg = np.column_stack([A_vm[bg_idx], A_sm[bg_idx] * 1000,
-                         A_tm[bg_idx], A_rho[bg_idx], A_diam[bg_idx],
-                         A_spd[bg_idx], A_tt[bg_idx], A_dt[bg_idx]])
+pc_fg = np.column_stack([P_vm,          P_sm * 1000,          P_tm,
+                         P_rho,          P_diam,
+                         P_spd,          P_tt,                 P_dt])
+pc_bg = np.column_stack([BG_vm,          BG_sm * 1000,        BG_tm,
+                         BG_rho,          BG_diam,
+                         BG_spd,          BG_tt,               BG_dt])
 
-# Normalise using the full feasible range
-pc_all = np.vstack([pc_fg, pc_bg])
-pc_min = pc_all.min(axis=0);  pc_max = pc_all.max(axis=0)
-pc_rng = np.maximum(pc_max - pc_min, 1e-12)
-pc_bg_norm = (pc_bg - pc_min) / pc_rng
-pc_fg_norm = (pc_fg - pc_min) / pc_rng
+pc_all  = np.vstack([pc_fg, pc_bg])
+pc_min  = pc_all.min(axis=0);  pc_max = pc_all.max(axis=0)
+pc_rng  = np.maximum(pc_max - pc_min, 1e-12)
+pc_bg_n = (pc_bg - pc_min) / pc_rng
+pc_fg_n = (pc_fg - pc_min) / pc_rng
 
-xs  = np.arange(len(pc_labels))
-bg_colors = cmap(norm(BG_s.astype(int)))
-fg_colors = cmap(norm(P_s.astype(int)))
+xs        = np.arange(len(pc_labels))
+bg_colors = cmap(norm(_map_spring_to_color(BG_s)))
+fg_colors = cmap(norm(_map_spring_to_color(P_s)))
 
-# Draw background lines
 max_bg_lines = 2000
-if len(pc_bg_norm) > max_bg_lines:
-    draw_bg = rng_plot.choice(len(pc_bg_norm), max_bg_lines, replace=False)
-else:
-    draw_bg = np.arange(len(pc_bg_norm))
+draw_bg = (rng_plot.choice(len(pc_bg_n), max_bg_lines, replace=False)
+           if len(pc_bg_n) > max_bg_lines else np.arange(len(pc_bg_n)))
 
 for i in draw_bg:
-    ax.plot(xs, pc_bg_norm[i], color=bg_colors[i], alpha=0.06, linewidth=0.4)
+    ax.plot(xs, pc_bg_n[i], color=bg_colors[i], alpha=0.05, linewidth=0.35)
 
-# Draw Pareto lines (bold)
-for i in range(len(pc_fg_norm)):
-    ax.plot(xs, pc_fg_norm[i], color=fg_colors[i], alpha=0.7, linewidth=1.2)
+for i in range(len(pc_fg_n)):
+    ax.plot(xs, pc_fg_n[i], color=fg_colors[i], alpha=0.65, linewidth=1.5)
 
 for j in range(len(xs)):
-    ax.axvline(j, color="k", linewidth=0.5, alpha=0.3)
-    ax.annotate(f"{pc_min[j]:.1f}", xy=(j, -0.03), ha="center", va="top",
-                fontsize=7, color="0.4")
-    ax.annotate(f"{pc_max[j]:.1f}", xy=(j,  1.03), ha="center", va="bottom",
-                fontsize=7, color="0.4")
+    ax.axvline(j, color="k", linewidth=0.5, alpha=0.25)
+    ax.annotate(f"{pc_min[j]:.1f}", xy=(j, -0.04), ha="center", va="top",
+                fontsize=7, color="0.35")
+    ax.annotate(f"{pc_max[j]:.1f}", xy=(j,  1.04), ha="center", va="bottom",
+                fontsize=7, color="0.35")
 
 ax.set_xticks(xs)
-ax.set_xticklabels(pc_labels, fontsize=8)
-ax.set_ylim(-0.08, 1.10)
+ax.set_xticklabels(pc_labels, fontsize=9)
+ax.set_ylim(-0.10, 1.12)
 ax.set_yticks([])
-ax.set_title("Parallel coordinates — feasible manifold (faint) + Pareto front (bold)",
-             fontsize=11)
-_add_spring_cbar(fig, ax)
-plt.tight_layout()
-plt.savefig("parallel_coordinates.png", dpi=DPI)
-plt.close(fig)
-print("  parallel_coordinates.png")
+ax.set_title("Parallel Coordinates -- Pareto front (bold) over feasible manifold (faint)", fontsize=11, fontweight="bold", pad=12)
+_add_spring_cbar(fig, ax, pad=0.03)
 
-print("\nDone.")
+# Annotation at bottom
+annotation = (f"Each line = one configuration; vertical axes show normalized values. "
+              f"Bold lines are Pareto-optimal. Trace horizontally to compare metrics across one configuration.")
+fig.text(0.5, 0.03, annotation, ha="center", fontsize=7, 
+         style="italic", color="0.4", wrap=True)
+
+fig.subplots_adjust(bottom=0.12)
+plt.savefig(os.path.join(GRAPHS_DIR, "pareto_parallel_coordinates.png"), dpi=DPI)
+if args.interactive:
+    plt.show()
+plt.close(fig)
+print("  graphs/pareto_parallel_coordinates.png")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Final summary
+# ═══════════════════════════════════════════════════════════════════════════
+
+print(f"""
+Output files:
+  results/all_feasible.csv             ({n_feas:,} rows)
+  results/pareto_optimal.csv           ({n_pareto:,} rows)
+  results/key_configurations.txt
+  graphs/pareto_3d_speed_mass_ratio.png
+  graphs/pareto_2d_projections.png
+  graphs/pareto_parallel_coordinates.png
+
+Done.
+""")
