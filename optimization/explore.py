@@ -20,6 +20,7 @@ Usage:
 
 import os
 import csv
+import json
 import warnings
 import argparse
 import numpy as np
@@ -66,22 +67,29 @@ if not args.interactive:
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 GRAPHS_DIR  = os.path.join(SCRIPT_DIR, "graphs")
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(GRAPHS_DIR,  exist_ok=True)
+
+with open(CONFIG_FILE) as fh:
+    config = json.load(fh)
+
+physics_config = config["physics"]
+sweep_config = config["sweep"]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Constants  (same values as spring.py)
 # ═══════════════════════════════════════════════════════════════════════════
 
-TARGET_SPEED_KMH = 15.0
+TARGET_SPEED_KMH = physics_config["target_speed_kmh"]
 TARGET_SPEED_MS  = TARGET_SPEED_KMH / 3.6
-FRICTION_COEFF   = 0.7
-SAFETY_FACTOR    = 1.5
-DRIVETRAIN_EFF   = 0.92
-N_WHEELS         = 3
-N_DRIVING_WHEELS = 2
-GRAVITY          = 9.81
-DPI              = 600
+FRICTION_COEFF   = physics_config["friction_coeff"]
+SAFETY_FACTOR    = physics_config["safety_factor"]
+DRIVETRAIN_EFF   = physics_config["drivetrain_eff"]
+N_WHEELS         = physics_config["n_wheels"]
+N_DRIVING_WHEELS = physics_config["n_driving_wheels"]
+GRAVITY          = physics_config["gravity"]
+DPI              = physics_config["dpi"]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Load spring catalogue
@@ -102,17 +110,17 @@ N_SPRINGS    = len(spring_names)
 # ═══════════════════════════════════════════════════════════════════════════
 
 # kg not counting spring mass
-LOWER_BOUND_MASS  = 1.50
-UPPER_BOUND_MASS  = 4
-MASS_STEP         = 0.125
+LOWER_BOUND_MASS  = sweep_config["mass"]["lower_bound_kg"]
+UPPER_BOUND_MASS  = sweep_config["mass"]["upper_bound_kg"]
+MASS_STEP         = sweep_config["mass"]["step_kg"]
 # unitless gear ratio
-LOWER_BOUND_RATIO = 10.0
-UPPER_BOUND_RATIO = 80.0
-RATIO_STEP        = 2.5
+LOWER_BOUND_RATIO = sweep_config["ratio"]["lower_bound"]
+UPPER_BOUND_RATIO = sweep_config["ratio"]["upper_bound"]
+RATIO_STEP        = sweep_config["ratio"]["step"]
 # mm wheel diameter
-LOWER_BOUND_DIAM  = 50.0
-UPPER_BOUND_DIAM  = 200.0
-DIAM_STEP         = 5.0
+LOWER_BOUND_DIAM  = sweep_config["diameter_mm"]["lower_bound"]
+UPPER_BOUND_DIAM  = sweep_config["diameter_mm"]["upper_bound"]
+DIAM_STEP         = sweep_config["diameter_mm"]["step"]
 
 # Create 1-D arrays of values for each parameter
 veh_mass_vals = np.arange(LOWER_BOUND_MASS, UPPER_BOUND_MASS + MASS_STEP, MASS_STEP)
