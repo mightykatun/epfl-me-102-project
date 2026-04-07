@@ -668,7 +668,7 @@ ax.set_ylabel("Total Mass [kg]",    fontsize=10, labelpad=10)
 ax.set_zlabel("Gear Ratio",         fontsize=10, labelpad=8)
 ax.tick_params(labelsize=8)
 ax.grid(True, alpha=0.15)
-ax.set_title("Pareto Front: Speed / Mass / Gear Ratio", fontsize=12, fontweight="bold", pad=18)
+ax.set_title("Speed / Mass / Gear Ratio: Pareto front (bold) over feasible manifold (faint)", fontsize=12, fontweight="bold", pad=18)
 _add_spring_cbar(fig, ax, pad=0.12)
 
 # Annotation at bottom
@@ -706,7 +706,7 @@ for ax, (xl, yl, bx, by, fx, fy) in zip(axes, specs):
     ax.grid(True, alpha=0.2)
     ax.set_box_aspect(1)
 
-fig.suptitle("Pareto Front: 2D Projections  (bold = Pareto, faint = feasible)", fontsize=12, fontweight="bold")
+fig.suptitle("2D Projections: Pareto front (bold) over feasible manifold (faint)", fontsize=12, fontweight="bold")
 _add_spring_cbar(fig, axes, pad=0.01)
 
 # Annotation at bottom
@@ -769,7 +769,7 @@ ax.set_xticks(xs)
 ax.set_xticklabels(pc_labels, fontsize=9)
 ax.set_ylim(-0.10, 1.12)
 ax.set_yticks([])
-ax.set_title("Parallel Coordinates -- Pareto front (bold) over feasible manifold (faint)", fontsize=11, fontweight="bold", pad=12)
+ax.set_title("Parallel Coordinates: Pareto front (bold) over feasible manifold (faint)", fontsize=11, fontweight="bold", pad=12)
 _add_spring_cbar(fig, ax, pad=0.03)
 
 # Annotation at bottom
