@@ -33,6 +33,7 @@ warnings.filterwarnings("ignore", message="delta_grad == 0.0")
 warnings.filterwarnings("ignore", message=".*tight_layout.*")
 
 from scipy.optimize import differential_evolution, NonlinearConstraint
+from tqdm import tqdm
 
 import spring_model as sm
 
@@ -308,7 +309,7 @@ else:
 # Pareto front extraction
 # ═══════════════════════════════════════════════════════════════════════════
 
-def pareto_front_indices(costs):
+def pareto_front_indices(costs, desc="Pareto extraction"):
     """
     Return indices of Pareto-optimal (non-dominated) rows.
 
@@ -332,7 +333,7 @@ def pareto_front_indices(costs):
     p_costs = np.empty((n, k))
     n_p     = 0
 
-    for raw in order:
+    for raw in tqdm(order, desc=desc, unit="pt", ncols=110):
         c = costs[raw]
         if n_p > 0:
             pc = p_costs[:n_p]
@@ -358,7 +359,7 @@ print()
 print("Extracting Pareto front from grid ...")
 # Three objectives: maximize speed (negate), minimize total mass, minimize gear ratio
 grid_costs      = np.column_stack([-F_spd, F_tm, F_rho])
-grid_pareto_idx = pareto_front_indices(grid_costs)
+grid_pareto_idx = pareto_front_indices(grid_costs, desc="Pareto (grid)")
 print(f"Found {len(grid_pareto_idx):,} Pareto-optimal points in grid.")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -493,7 +494,7 @@ print()
 print("Re-extracting combined Pareto front ...")
 # Three objectives: maximize speed (negate), minimize total mass, minimize gear ratio
 all_costs  = np.column_stack([-A_spd, A_tm, A_rho])
-pareto_idx = pareto_front_indices(all_costs)
+pareto_idx = pareto_front_indices(all_costs, desc="Pareto (combined)")
 n_pareto   = len(pareto_idx)
 print(f"Final Pareto-optimal points: {n_pareto:,}")
 
@@ -596,9 +597,10 @@ lines.append("  TOP 5 RANKINGS  (Pareto-optimal only)")
 lines.append("=" * 68)
 
 for title, indices in [
-    ("Ranked by Peak Speed (descending)", np.argsort(-P_spd)[:5]),
-    ("Ranked by Total Mass (ascending)",  np.argsort(P_tm) [:5]),
-    ("Ranked by Gear Ratio (ascending)",  np.argsort(P_rho)[:5]),
+    ("Ranked by Peak Speed (descending)",  np.argsort(-P_spd)[:5]),
+    ("Ranked by Total Mass (ascending)",   np.argsort(P_tm) [:5]),
+    ("Ranked by Gear Ratio (ascending)",   np.argsort(P_rho)[:5]),
+    ("Ranked by Balanced Score (descending)", np.argsort(-balanced_score)[:5]),
 ]:
     lines.append(f"\n  {title}")
     lines.append(_table_header())
