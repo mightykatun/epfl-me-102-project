@@ -127,14 +127,53 @@ veh_mass_vals = np.arange(LOWER_BOUND_MASS, UPPER_BOUND_MASS + MASS_STEP, MASS_S
 ratio_vals    = np.arange(LOWER_BOUND_RATIO, UPPER_BOUND_RATIO + RATIO_STEP, RATIO_STEP)
 diam_vals     = np.arange(LOWER_BOUND_DIAM, UPPER_BOUND_DIAM + DIAM_STEP, DIAM_STEP)
 
+
+def _decimal_places(step):
+    step_str = f"{step:.12f}".rstrip("0").rstrip(".")
+    if "." not in step_str:
+        return 0
+    return len(step_str.split(".", 1)[1])
+
+
+def _fmt_value(value, step):
+    decimals = _decimal_places(step)
+    rounded = round(float(value), decimals)
+    if decimals == 0:
+        return str(int(round(rounded)))
+    return f"{rounded:.{decimals}f}".rstrip("0").rstrip(".")
+
+
+def _format_span(label, unit, values, step):
+    display_vals = [_fmt_value(v, step) for v in values]
+    if len(display_vals) <= 4:
+        preview = "  ".join(display_vals)
+    else:
+        preview = "  ".join(display_vals[:2] + ["..."] + display_vals[-2:])
+        preview = f"[{preview}]"
+    unit_suffix = f" [{unit}]" if unit else ""
+    text = f"{label}{unit_suffix} from {_fmt_value(values[0], step)} to {_fmt_value(values[-1], step)} (step {_fmt_value(step, step)}):"
+    return f"{text:<40}{preview}"
+
 # Compute total grid size
 N_M = len(veh_mass_vals)
 N_R = len(ratio_vals)
 N_D = len(diam_vals)
 N_TOTAL = N_SPRINGS * N_M * N_R * N_D
 
+print()
+print("=" * 29)
+print("  Multi-objective optimizer")
+print("=" * 29)
+print()
+print(f"Spring catalogue: {N_SPRINGS} entries from {os.path.basename(SPRINGS_FILE)}")
+print()
+print(_format_span("Mass", "kg", veh_mass_vals, MASS_STEP))
+print(_format_span("Ratio", None, ratio_vals, RATIO_STEP))
+print(_format_span("Diameter", "mm", diam_vals, DIAM_STEP))
+print()
 print(f"Grid: {N_SPRINGS} springs x {N_M} vehicle masses x {N_R} ratios "
       f"x {N_D} diameters = {N_TOTAL:,} combinations")
+print()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Spring-level arrays
@@ -151,14 +190,12 @@ energy_arr   = sm.stored_energy(k_theta_arr, theta0_arr)
 # Vectorised grid computation
 # ═══════════════════════════════════════════════════════════════════════════
 
-print("Computing grid metrics ...")
-
 # Reshape for 4-D broadcasting:  (spring, veh_mass, ratio, diam)
-torque_4d   = torque_arr  [:, None, None, None]
-theta0_4d   = theta0_arr  [:, None, None, None]
-k_th_4d     = k_theta_arr [:, None, None, None]
-E_st_4d     = energy_arr  [:, None, None, None]
-spr_m_4d    = spr_mass_arr[:, None, None, None]       # spring mass [kg]
+torque_4d   = torque_arr   [:, None, None, None]
+theta0_4d   = theta0_arr   [:, None, None, None]
+k_th_4d     = k_theta_arr  [:, None, None, None]
+E_st_4d     = energy_arr   [:, None, None, None]
+spr_m_4d    = spr_mass_arr [:, None, None, None]       # spring mass [kg]
 veh_m_4d    = veh_mass_vals[None, :, None, None]       # vehicle mass [kg]
 rho_4d      = ratio_vals   [None, None, :, None]
 R_4d        = diam_vals    [None, None, None, :] / 2000.0
@@ -195,18 +232,16 @@ accel_4d        = peak_F / total_m_4d
 # Flatten and filter to feasible
 # ═══════════════════════════════════════════════════════════════════════════
 
-print("Filtering to feasible combinations ...")
-
 # Create 1-D arrays for each parameter/metric, aligned by raveled index.  Then
 # we can apply the same boolean mask to all of them to get the feasible subset.  The
 # spring index is repeated so we can identify which spring each row corresponds to.
 full_shape = (N_SPRINGS, N_M, N_R, N_D)
 
 s_flat     = np.broadcast_to(np.arange(N_SPRINGS)[:, None, None, None], full_shape).ravel()
-vm_flat    = np.broadcast_to(veh_m_4d,  full_shape).ravel()       # vehicle mass
-sm_flat    = np.broadcast_to(spr_m_4d,  full_shape).ravel()       # spring mass
-tm_flat    = np.broadcast_to(total_m_4d, full_shape).ravel()      # total mass
-rho_flat   = np.broadcast_to(rho_4d,    full_shape).ravel()
+vm_flat    = np.broadcast_to(veh_m_4d,   full_shape).ravel()    # vehicle mass
+sm_flat    = np.broadcast_to(spr_m_4d,   full_shape).ravel()    # spring mass
+tm_flat    = np.broadcast_to(total_m_4d, full_shape).ravel()    # total mass
+rho_flat   = np.broadcast_to(rho_4d,     full_shape).ravel()
 diam_flat  = np.broadcast_to(diam_vals[None, None, None, :], full_shape).ravel()
 
 spd_flat = np.broadcast_to(peak_spd_kmh_4d, full_shape).ravel()
@@ -219,7 +254,7 @@ ac_flat  = np.broadcast_to(accel_4d,        full_shape).ravel()
 # Apply feasibility mask to filter all arrays to the feasible subset
 mask   = feasible.ravel()
 n_feas = int(mask.sum())
-print(f"Feasible: {n_feas:,} / {N_TOTAL:,} ({100.0 * n_feas / N_TOTAL:.1f}%)")
+print(f"Filtered to total feasible: {n_feas:,} / {N_TOTAL:,} ({100.0 * n_feas / N_TOTAL:.1f}%)")
 
 if n_feas == 0:
     print("No feasible combinations found. Exiting.")
@@ -313,18 +348,19 @@ def pareto_front_indices(costs):
 
     return p_ids[:n_p].copy()
 
-
+print()
 print("Extracting Pareto front from grid ...")
 # Three objectives: maximize speed (negate), minimize total mass, minimize gear ratio
 grid_costs      = np.column_stack([-F_spd, F_tm, F_rho])
 grid_pareto_idx = pareto_front_indices(grid_costs)
-print(f"Grid Pareto-optimal: {len(grid_pareto_idx):,}")
+print(f"Found {len(grid_pareto_idx):,} Pareto-optimal points in grid.")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Scipy per-spring continuous refinement
 # ═══════════════════════════════════════════════════════════════════════════
 
-print("Refining with scipy optimiser ...")
+print()
+print("Refining with scipy optimiser ...\x1b[37m")
 
 OPT_BOUNDS = [(LOWER_BOUND_MASS, UPPER_BOUND_MASS),                   # vehicle mass [kg]
               (LOWER_BOUND_RATIO, UPPER_BOUND_RATIO),                 # gear ratio
@@ -344,7 +380,7 @@ for si in range(N_SPRINGS):
     min_total = veh_mass_vals[0] + m_spr
     if DRIVETRAIN_EFF * E_spr < 0.5 * min_total * TARGET_SPEED_MS ** 2 * SAFETY_FACTOR:
         print(f"  [{si+1:2d}/{N_SPRINGS}] {sname} ({m_spr*1000:.0f} g)"
-              f" — skipped (insufficient energy)")
+              f" - skipped (insufficient energy)")
         continue
 
     # Constraint helpers — x = [vehicle_mass, rho, R]
@@ -416,9 +452,9 @@ for si in range(N_SPRINGS):
             pass
 
     print(f"  [{si+1:2d}/{N_SPRINGS}] {sname} ({m_spr*1000:.0f} g)"
-          f" — {n_found} optima found")
+          f" - {n_found} optima found")
 
-print(f"Optimiser points added: {len(opt_rows)}")
+print(f"\x1b[0mOptimiser added {len(opt_rows)} new points across all springs.")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Merge grid + optimiser results and re-extract Pareto
@@ -447,12 +483,13 @@ else:
     A_spd, A_tt, A_dt       = F_spd, F_tt, F_dt
     A_mn, A_mp, A_ac        = F_mn, F_mp, F_ac
 
+print()
 print("Re-extracting combined Pareto front ...")
 # Three objectives: maximize speed (negate), minimize total mass, minimize gear ratio
 all_costs  = np.column_stack([-A_spd, A_tm, A_rho])
 pareto_idx = pareto_front_indices(all_costs)
 n_pareto   = len(pareto_idx)
-print(f"Final Pareto-optimal: {n_pareto:,}")
+print(f"Final Pareto-optimal points: {n_pareto:,}")
 
 # Boolean mask over the combined (A_*) arrays
 is_pareto = np.zeros(len(A_s), dtype=bool)
@@ -467,10 +504,6 @@ P_mp   = A_mp  [pareto_idx];  P_ac   = A_ac  [pareto_idx]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Save pareto.csv
-# ═══════════════════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Save pareto CSV
 # ═══════════════════════════════════════════════════════════════════════════
 
 print(f"Saving pareto_optimal.csv ({n_pareto:,} rows) ...")

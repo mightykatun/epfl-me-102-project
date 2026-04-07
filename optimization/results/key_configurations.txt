@@ -4,35 +4,35 @@
 
   FASTEST
     Spring   : SPF-0939 (1547 g)
-    Vehicle  : 1.50 kg  |  Total: 3.05 kg
-    Gearing  : ratio 62.0  |  wheel D 195 mm
-    Speed    : 49.10 km/h
+    Vehicle  : 1.00 kg  |  Total: 2.55 kg
+    Gearing  : ratio 72.5  |  wheel D 200 mm
+    Speed    : 53.70 km/h
     Target   : reached in 1.40 s / 2.93 m
-    Traction : 0.05 N margin (0.6%)
+    Traction : 0.06 N margin (0.8%)
 
   LIGHTEST
-    Spring   : SPF-0925 (106 g)
-    Vehicle  : 1.50 kg  |  Total: 1.61 kg
-    Gearing  : ratio 16.0  |  wheel D 192 mm
-    Speed    : 18.78 km/h
-    Target   : reached in 1.60 s / 3.59 m
-    Traction : 0.05 N margin (1.0%)
+    Spring   : SPF-0924 (30 g)
+    Vehicle  : 1.00 kg  |  Total: 1.03 kg
+    Gearing  : ratio 17.5  |  wheel D 195 mm
+    Speed    : 19.15 km/h
+    Target   : reached in 1.69 s / 3.79 m
+    Traction : 0.23 N margin (7.4%)
 
   SIMPLEST GEARING
-    Spring   : SPF-0926 (146 g)
-    Vehicle  : 1.50 kg  |  Total: 1.65 kg
-    Gearing  : ratio 10.0  |  wheel D 200 mm
-    Speed    : 21.95 km/h
-    Target   : reached in 1.52 s / 3.32 m
-    Traction : 0.06 N margin (1.1%)
+    Spring   : SPF-0919 (70 g)
+    Vehicle  : 1.00 kg  |  Total: 1.07 kg
+    Gearing  : ratio 10.0  |  wheel D 190 mm
+    Speed    : 19.78 km/h
+    Target   : reached in 2.09 s / 4.64 m
+    Traction : 0.84 N margin (25.9%)
 
   BALANCED  (score 0.116)
-    Spring   : SPF-0930 (302 g)
-    Vehicle  : 1.50 kg  |  Total: 1.80 kg
-    Gearing  : ratio 20.0  |  wheel D 199 mm
-    Speed    : 29.28 km/h
-    Target   : reached in 1.52 s / 3.25 m
-    Traction : 0.32 N margin (5.9%)
+    Spring   : SPF-0927 (220 g)
+    Vehicle  : 1.00 kg  |  Total: 1.22 kg
+    Gearing  : ratio 22.5  |  wheel D 200 mm
+    Speed    : 31.23 km/h
+    Target   : reached in 1.60 s / 3.41 m
+    Traction : 0.41 N margin (11.0%)
 
 ====================================================================
   TOP 5 RANKINGS  (Pareto-optimal only)
@@ -41,27 +41,27 @@
   Ranked by Peak Speed (descending)
    #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
   ----------------------------------------------------------------------------------
-   1  SPF-0939    1547     1.50     3.05   62.0    199   49.10    1.42    2.99
-   2  SPF-0939    1547     1.50     3.05   62.0    195   49.10    1.40    2.93
-   3  SPF-0939    1547     1.50     3.05   62.0    198   49.10    1.42    2.98
-   4  SPF-0939    1547     1.50     3.05   62.0    196   49.10    1.40    2.95
-   5  SPF-0939    1547     1.50     3.05   62.0    197   49.10    1.41    2.96
+   1  SPF-0939    1547     1.00     2.55   72.5    200   53.70    1.40    2.93
+   2  SPF-0939    1547     1.10     2.65   70.0    200   52.68    1.40    2.94
+   3  SPF-0939    1547     1.20     2.75   67.5    200   51.71    1.40    2.94
+   4  SPF-0939    1547     1.30     2.85   65.0    200   50.79    1.40    2.94
+   5  SPF-0939    1547     1.40     2.95   62.5    200   49.92    1.39    2.93
 
   Ranked by Total Mass (ascending)
    #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
   ----------------------------------------------------------------------------------
-   1  SPF-0925     106     1.50     1.61   16.0    191   18.78    1.59    3.57
-   2  SPF-0925     106     1.50     1.61   16.0    193   18.78    1.61    3.61
-   3  SPF-0925     106     1.50     1.61   16.0    198   18.78    1.65    3.70
-   4  SPF-0925     106     1.50     1.61   16.0    197   18.78    1.64    3.68
-   5  SPF-0925     106     1.50     1.61   16.0    199   18.78    1.66    3.72
+   1  SPF-0924      30     1.00     1.03   17.5    185   19.15    1.61    3.59
+   2  SPF-0924      30     1.00     1.03   17.5    200   19.15    1.74    3.88
+   3  SPF-0924      30     1.00     1.03   17.5    195   19.15    1.69    3.79
+   4  SPF-0924      30     1.00     1.03   17.5    190   19.15    1.65    3.69
+   5  SPF-0922      62     1.00     1.06   10.0    190   19.19    2.00    4.47
 
   Ranked by Gear Ratio (ascending)
    #    Spring  Spr(g)  Veh(kg)  Tot(kg)  Ratio  D(mm)    Speed    Time    Dist
   ----------------------------------------------------------------------------------
-   1  SPF-0923     124     1.50     1.62   10.0    194   20.32    1.78    3.94
-   2  SPF-0923     124     1.50     1.62   10.0    190   20.32    1.75    3.86
-   3  SPF-0923     124     1.50     1.62   10.0    191   20.32    1.76    3.88
-   4  SPF-0923     124     1.50     1.62   10.0    192   20.32    1.77    3.90
-   5  SPF-0923     124     1.50     1.62   10.0    188   20.32    1.73    3.82
+   1  SPF-0919      70     1.00     1.07   10.0    190   19.78    2.09    4.64
+   2  SPF-0922      62     1.00     1.06   10.0    180   19.19    1.89    4.23
+   3  SPF-0922      62     1.00     1.06   10.0    160   19.19    1.68    3.76
+   4  SPF-0922      62     1.00     1.06   10.0    170   19.19    1.79    4.00
+   5  SPF-0922      62     1.00     1.06   10.0    165   19.19    1.74    3.88
 
