@@ -151,7 +151,7 @@ SEP = "=" * W
 
 print()
 print(SEP)
-print(f"  Configuration test: {spring_name.upper()}  |  rho={gear_ratio:g}  |  D={wheel_diameter_mm:g} mm  |  m={vehicle_mass_kg:g} kg")
+print(f"  Configuration test: {spring_name.upper()}  |  ratio {gear_ratio:g}  |  D {wheel_diameter_mm:g} mm  |  m {vehicle_mass_kg:g} kg")
 print(SEP)
 
 print("\n--- Spring ---")
