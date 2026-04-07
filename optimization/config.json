@@ -11,9 +11,9 @@
   },
   "sweep": {
     "mass": {
-      "lower_bound_kg": 1.5,
+      "lower_bound_kg": 1.0,
       "upper_bound_kg": 4.0,
-      "step_kg": 0.125
+      "step_kg": 0.1
     },
     "ratio": {
       "lower_bound": 10.0,
