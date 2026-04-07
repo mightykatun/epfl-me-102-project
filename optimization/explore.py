@@ -54,6 +54,11 @@ parser.add_argument(
     metavar="SPRINGS_FILE",
     help="Spring data file to load (default: springs.txt)"
 )
+parser.add_argument(
+    "--save-all",
+    action="store_true",
+    help="Write all_feasible.csv with every feasible configuration (default: False)"
+)
 args = parser.parse_args()
 
 # Set matplotlib backend based on interactive flag
@@ -277,24 +282,27 @@ F_ac   = ac_flat  [mask].copy()
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Save the full feasible grid to results.csv, sorted by peak speed.
-print(f"Saving all_feasible.csv ({n_feas:,} rows) ...")
 sort_idx = np.argsort(-F_spd)
 
-with open(os.path.join(RESULTS_DIR, "all_feasible.csv"), "w", newline="") as fh:
-    writer = csv.writer(fh)
-    writer.writerow(["spring", "vehicle_mass_kg", "spring_mass_kg",
-                     "total_mass_kg", "gear_ratio", "wheel_diam_mm",
-                     "peak_speed_kmh", "time_to_target_s", "dist_to_target_m",
-                     "traction_margin_n", "traction_margin_pct",
-                     "initial_accel_m_s2"])
-    for i in sort_idx:
-        writer.writerow([
-            spring_names[int(F_s[i])],
-            f"{F_vm[i]:.2f}", f"{F_sm[i]:.4f}", f"{F_tm[i]:.4f}",
-            f"{F_rho[i]:.0f}",  f"{F_diam[i]:.0f}",
-            f"{F_spd[i]:.2f}", f"{F_tt[i]:.4f}",   f"{F_dt[i]:.4f}",
-            f"{F_mn[i]:.4f}",  f"{F_mp[i]:.2f}",   f"{F_ac[i]:.4f}",
-        ])
+if args.save_all:
+    print(f"Saving all_feasible.csv ({n_feas:,} rows) ...")
+    with open(os.path.join(RESULTS_DIR, "all_feasible.csv"), "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["spring", "vehicle_mass_kg", "spring_mass_kg",
+                         "total_mass_kg", "gear_ratio", "wheel_diam_mm",
+                         "peak_speed_kmh", "time_to_target_s", "dist_to_target_m",
+                         "traction_margin_n", "traction_margin_pct",
+                         "initial_accel_m_s2"])
+        for i in sort_idx:
+            writer.writerow([
+                spring_names[int(F_s[i])],
+                f"{F_vm[i]:.2f}", f"{F_sm[i]:.4f}", f"{F_tm[i]:.4f}",
+                f"{F_rho[i]:.0f}",  f"{F_diam[i]:.0f}",
+                f"{F_spd[i]:.2f}", f"{F_tt[i]:.4f}",   f"{F_dt[i]:.4f}",
+                f"{F_mn[i]:.4f}",  f"{F_mp[i]:.2f}",   f"{F_ac[i]:.4f}",
+            ])
+else:
+    print(f"Skipping all_feasible.csv (pass --save-all to write it)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Pareto front extraction
@@ -791,7 +799,7 @@ print("  graphs/pareto_parallel_coordinates.png")
 
 print(f"""
 Output files:
-  results/all_feasible.csv             ({n_feas:,} rows)
+  results/all_feasible.csv             {'({n_feas:,} rows)' if args.save_all else '(skipped)'}
   results/pareto_optimal.csv           ({n_pareto:,} rows)
   results/key_configurations.txt
   graphs/pareto_3d_speed_mass_ratio.png
