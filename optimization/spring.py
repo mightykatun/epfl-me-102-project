@@ -185,7 +185,7 @@ else:
 
 print(f"\n--- Constraints  (safety factor = {safety_factor}) ---")
 print(f"  [energy]  available    : {available_wheel_energy_j:.4f} J   (multiplied by drivetrain efficiency)")
-print(f"  [energy]  required     : {required_mechanical_energy_j:.4f} J   (with safety factor)")
+print(f"  [energy]  required     : {required_mechanical_energy_j:.4f} J   (multiplied by safety factor)")
 print(f"  [energy]  satisfied    : {ok(energy_ok, 'INSUFFICIENT ENERGY')}")
 print(f"  [traction] peak force  : {peak_force_n:.4f} N   (at t = 0)")
 print(f"  [traction] limit       : {max_friction_force_n:.4f} N   (slip threshold with safety factor)")
