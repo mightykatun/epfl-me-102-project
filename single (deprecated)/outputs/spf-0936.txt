@@ -1,0 +1,26 @@
+
+=== Spring / Vehicle Summary ===
+Spring                           : spf-0936
+Rated max torque                 : 36.45 N m
+Rated max rotation               : 262.00 deg
+Estimated spring rate            : 0.1391 N m/deg
+Stored spring energy             : 83.34 J
+Drivetrain efficiency            : 92.00 %
+Safety factor                    : 1.50
+Available wheel energy           : 76.67 J
+Vehicle mass                     : 1.50 kg
+Target speed                     : 15.00 km/h (4.17 m/s)
+Required energy with safety fact : 19.53 J
+Max speed with drivetrain losses : 36.40 km/h (10.11 m/s)
+Driven-wheel traction limit      : 4.58 N
+
+=== Example Drivetrain Summary ===
+Gear ratio                       : 25.00
+Wheel diameter                   : 140.00 mm
+Peak wheel force at t = 0        : 19.16 N
+Traction margin                  : -14.58 N (-318.57%)
+Release time                     : 1.24 s
+Release distance                 : 8.00 m
+Peak speed at spring neutral     : 36.40 km/h (10.11 m/s)
+Initial acceleration             : 12.77 m/s^2
+Target speed reach               : 0.34 s at x = 0.71 m
