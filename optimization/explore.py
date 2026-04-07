@@ -131,7 +131,7 @@ diam_vals     = np.arange(LOWER_BOUND_DIAM, UPPER_BOUND_DIAM + DIAM_STEP, DIAM_S
 def _format_array(label, lower, upper, values, unit=None):
     gray = "\x1b[90m"
     reset = "\x1b[0m"
-    prefix = f"{label} from {lower} to {upper}{f' [{unit}]' if unit else ''}:"
+    prefix = f"{label} from {lower} to {upper}{f' [{unit}]' if unit else ''}"
     padded_prefix = f"{prefix:<35}{gray} "
     body = np.array2string(
         values,
