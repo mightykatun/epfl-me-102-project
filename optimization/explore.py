@@ -128,31 +128,24 @@ ratio_vals    = np.arange(LOWER_BOUND_RATIO, UPPER_BOUND_RATIO + RATIO_STEP, RAT
 diam_vals     = np.arange(LOWER_BOUND_DIAM, UPPER_BOUND_DIAM + DIAM_STEP, DIAM_STEP)
 
 
-def _decimal_places(step):
-    step_str = f"{step:.12f}".rstrip("0").rstrip(".")
-    if "." not in step_str:
-        return 0
-    return len(step_str.split(".", 1)[1])
+def _format_array(label, lower, upper, values, unit=None):
+    gray = "\x1b[90m"
+    reset = "\x1b[0m"
+    prefix = f"{label} from {lower} to {upper}{f' [{unit}]' if unit else ''}:"
+    padded_prefix = f"{prefix:<35}{gray} "
+    body = np.array2string(
+        values,
+        separator=", ",
+        max_line_width=100,
+        edgeitems=2,
+        threshold=4,
+        formatter={
+            "float_kind": lambda x: f"{x:.6f}".rstrip("0").rstrip(".")
+        },
+    )
+    formatted = padded_prefix + body.replace("\n", "\n" + " " * len(padded_prefix))
+    return f"{formatted}{reset}"
 
-
-def _fmt_value(value, step):
-    decimals = _decimal_places(step)
-    rounded = round(float(value), decimals)
-    if decimals == 0:
-        return str(int(round(rounded)))
-    return f"{rounded:.{decimals}f}".rstrip("0").rstrip(".")
-
-
-def _format_span(label, unit, values, step):
-    display_vals = [_fmt_value(v, step) for v in values]
-    if len(display_vals) <= 4:
-        preview = "  ".join(display_vals)
-    else:
-        preview = "  ".join(display_vals[:2] + ["..."] + display_vals[-2:])
-        preview = f"[{preview}]"
-    unit_suffix = f" [{unit}]" if unit else ""
-    text = f"{label}{unit_suffix} from {_fmt_value(values[0], step)} to {_fmt_value(values[-1], step)} (step {_fmt_value(step, step)}):"
-    return f"{text:<40}{preview}"
 
 # Compute total grid size
 N_M = len(veh_mass_vals)
@@ -161,15 +154,20 @@ N_D = len(diam_vals)
 N_TOTAL = N_SPRINGS * N_M * N_R * N_D
 
 print()
-print("=" * 29)
-print("  Multi-objective optimizer")
-print("=" * 29)
+print("=" * 57)
+print(f"  Multi-objective optimizer for target speed {TARGET_SPEED_KMH} km/h")
+print("=" * 57)
 print()
 print(f"Spring catalogue: {N_SPRINGS} entries from {os.path.basename(SPRINGS_FILE)}")
 print()
-print(_format_span("Mass", "kg", veh_mass_vals, MASS_STEP))
-print(_format_span("Ratio", None, ratio_vals, RATIO_STEP))
-print(_format_span("Diameter", "mm", diam_vals, DIAM_STEP))
+print(_format_array("Mass", LOWER_BOUND_MASS, UPPER_BOUND_MASS, veh_mass_vals, "kg"))
+print(_format_array("Ratio", LOWER_BOUND_RATIO, UPPER_BOUND_RATIO, ratio_vals))
+print(_format_array("Diameter", LOWER_BOUND_DIAM, UPPER_BOUND_DIAM, diam_vals, "mm"))
+print()
+print("Drivetrain efficiency:", DRIVETRAIN_EFF)
+print("Friction coefficient:", FRICTION_COEFF)
+print("Safety factor:", SAFETY_FACTOR)
+
 print()
 print(f"Grid: {N_SPRINGS} springs x {N_M} vehicle masses x {N_R} ratios "
       f"x {N_D} diameters = {N_TOTAL:,} combinations")
@@ -360,7 +358,7 @@ print(f"Found {len(grid_pareto_idx):,} Pareto-optimal points in grid.")
 # ═══════════════════════════════════════════════════════════════════════════
 
 print()
-print("Refining with scipy optimiser ...\x1b[37m")
+print("Refining with scipy optimiser ...\x1b[90m")
 
 OPT_BOUNDS = [(LOWER_BOUND_MASS, UPPER_BOUND_MASS),                   # vehicle mass [kg]
               (LOWER_BOUND_RATIO, UPPER_BOUND_RATIO),                 # gear ratio
@@ -380,7 +378,7 @@ for si in range(N_SPRINGS):
     min_total = veh_mass_vals[0] + m_spr
     if DRIVETRAIN_EFF * E_spr < 0.5 * min_total * TARGET_SPEED_MS ** 2 * SAFETY_FACTOR:
         print(f"  [{si+1:2d}/{N_SPRINGS}] {sname} ({m_spr*1000:.0f} g)"
-              f" - skipped (insufficient energy)")
+              f" - insufficient energy")
         continue
 
     # Constraint helpers — x = [vehicle_mass, rho, R]
