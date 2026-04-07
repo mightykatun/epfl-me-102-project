@@ -141,6 +141,30 @@ def distance_to_speed(v_target, rho, R, theta0_deg, m, k_theta, eta):
     )
 
 
+def position(t, rho, R, theta0_deg, m, k_theta, eta):
+    """
+    Position x(t) [m] during the release phase.
+    Valid for 0 <= t <= release_time(...).
+    """
+    w = omega(rho, R, m, k_theta, eta)
+    x_rel = release_distance(rho, R, theta0_deg)
+    return x_rel * (1.0 - np.cos(w * t))
+
+
+def velocity(t, rho, R, theta0_deg, m, k_theta, eta):
+    """Velocity v(t) [m/s] during the release phase."""
+    w = omega(rho, R, m, k_theta, eta)
+    x_rel = release_distance(rho, R, theta0_deg)
+    return x_rel * w * np.sin(w * t)
+
+
+def acceleration(t, rho, R, theta0_deg, m, k_theta, eta):
+    """Acceleration a(t) [m/s^2] during the release phase."""
+    w = omega(rho, R, m, k_theta, eta)
+    x_rel = release_distance(rho, R, theta0_deg)
+    return x_rel * w ** 2 * np.cos(w * t)
+
+
 # ---------------------------------------------------------------------------
 # Forces
 # ---------------------------------------------------------------------------

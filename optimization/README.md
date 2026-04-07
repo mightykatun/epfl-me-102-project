@@ -2,7 +2,41 @@
 
 This directory contains the full drivetrain search and Pareto extraction pipeline for the spring-powered vehicle model. The code evaluates a finite design grid, removes infeasible points, extracts nondominated trade-off solutions, then uses SciPy to refine the search in continuous space.
 
-The main entry points are [`explore.py`](./explore.py) and [`spring_model.py`](./spring_model.py). Input spring data comes from [`springs.txt`](./springs.txt), which mirrors the root catalog at [`../springs.txt`](../springs.txt).
+The main entry points are [`explore.py`](./explore.py), [`spring.py`](./spring.py), and [`spring_model.py`](./spring_model.py). Input spring data comes from [`springs.txt`](./springs.txt), which mirrors the root catalog at [`../springs.txt`](../springs.txt).
+
+## Entry Points
+
+### [`explore.py`](./explore.py)
+
+Runs the full constrained design sweep, filters feasible configurations, extracts the Pareto front, and writes the summary tables and plots.
+
+### [`spring.py`](./spring.py)
+
+Analyzes one specific drivetrain configuration passed on the command line. It uses the shared formulas in [`spring_model.py`](./spring_model.py), prints the derived metrics for that exact setup, and generates the same three-panel release plot for:
+
+- position `x(t)`
+- velocity `v(t)`
+- acceleration `a(t)`
+
+Usage:
+
+```bash
+python spring.py <gear_ratio> <wheel_diameter_mm> <vehicle_mass_kg> <spring_name>
+```
+
+Example:
+
+```bash
+python spring.py 25 140 1.5 SPF-0927
+```
+
+The `vehicle_mass_kg` argument excludes spring mass. The script loads the spring mass from the catalog and computes total accelerated mass as:
+
+```text
+m_total = m_vehicle + m_spring
+```
+
+The generated plot is written to [`graphs/`](./graphs/).
 
 ## What This Optimizer Solves
 
@@ -396,10 +430,22 @@ Pure physics functions and unit-normalized data loading.
 - `load_springs()` parses the catalog
 - `stored_energy()` computes spring energy
 - `omega()`, `release_time()`, `max_speed()` implement the closed-form kinematics
+- `position()`, `velocity()`, and `acceleration()` generate the release-response curves
 - `time_to_speed()` and `distance_to_speed()` compute target-reaching metrics
 - `max_force_ground()` and `traction_limit()` implement the hard constraints
 
-This separation keeps the model reusable and makes [`explore.py`](./explore.py) mostly an orchestration script.
+This separation keeps the model reusable and makes [`explore.py`](./explore.py) and [`spring.py`](./spring.py) mostly orchestration scripts.
+
+### [`spring.py`](./spring.py)
+
+Single-configuration analyzer.
+
+- parses `gear_ratio`, `wheel_diameter_mm`, `vehicle_mass_kg`, and `spring_name`
+- loads physics constants from [`config.json`](./config.json)
+- loads the spring catalog from [`springs.txt`](./springs.txt)
+- computes force, energy, speed, timing, and traction metrics for one configuration
+- generates the three-panel `x(t)`, `v(t)`, `a(t)` plot
+- saves the plot under [`graphs/`](./graphs/)
 
 ### [`explore.py`](./explore.py)
 
