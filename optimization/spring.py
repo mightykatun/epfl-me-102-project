@@ -176,8 +176,8 @@ print(f"  Natural frequency      : {omega_rad_s:.4f} rad/s")
 print("\n--- Kinematics ---")
 print(f"  Release time           : {release_time_s:.4f} s")
 print(f"  Release distance       : {release_distance_m:.4f} m")
-print(f"  Peak speed             : {peak_speed_kmh:.4f} km/h ({peak_speed_m_s:.4f} m/s)")
-print(f"  Initial acceleration   : {initial_acceleration_m_s2:.4f} m/s^2")
+print(f"  Peak speed             : {peak_speed_kmh:.4f} km/h [{peak_speed_m_s:.4f} m/s] (includes efficiency, not safety factor)")
+print(f"  Initial acceleration   : {initial_acceleration_m_s2:.4f} m/s^2 [{(initial_acceleration_m_s2 / 9.81):.2f} g]")
 if target_reached:
     print(f"  Time to {target_speed_kmh:.1f} km/h      : {time_to_target_s:.4f} s at x = {distance_to_target_m:.4f} m")
 else:
