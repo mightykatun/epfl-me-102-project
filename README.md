@@ -19,7 +19,7 @@ The system computes Pareto-optimal solutions across three competing objectives:
 2. **Minimize total mass** (vehicle + spring, kg)
 3. **Minimize gear ratio** (lower = simpler mechanism)
 
-Hard constraints ensure (1) no wheel slip at peak torque and (2) sufficient energy to reach 15 km/h with a 1.5× safety factor. The optimizer accounts for 92% drivetrain efficiency and includes spring mass in all dynamics calculations.
+Hard constraints ensure (1) no wheel slip at peak torque and (2) sufficient energy to reach 15 km/h with a 1.5× safety factor. The optimizer accounts for 92% drivetrain efficiency and includes spring mass in all dynamics calculations. In particular, the slip / traction check uses total mass `(vehicle + spring)`, not vehicle mass alone.
 
 Typical Pareto fronts contain 70 configurations ranging from lightweight/slow designs (1.61 kg, 18.8 km/h, ratio 17.5) to heavy/fast setups (3.05 kg, 49.1 km/h, ratio 62.5).
 
@@ -189,6 +189,7 @@ Multi-objective Pareto optimization of the full parameter space. Contains:
   - `pareto_3d_speed_mass_ratio.png` — 3D scatter of objectives
   - `pareto_2d_projections.png` — Three 2D slices (speed vs. mass, speed vs. ratio, mass vs. ratio)
   - `pareto_parallel_coordinates.png` — 10-metric parallel-axis plot
+  - Per-configuration plots produced by `optimization/spring.py` use the input vehicle mass in the filename (for example `mass-1.5kg_...`), even though the plotted dynamics and constraint calculations use total mass `(vehicle + spring)` internally
 
 ### `single/`
 

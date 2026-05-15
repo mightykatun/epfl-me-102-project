@@ -36,7 +36,9 @@ The `vehicle_mass_kg` argument excludes spring mass. The script loads the spring
 m_total = m_vehicle + m_spring
 ```
 
-The generated plot is written to [`graphs/`](./graphs/).
+All dynamics and constraint checks in `spring.py`, including the wheel-slip / traction-limit check, use `m_total` rather than vehicle mass alone.
+
+The generated plot is written to [`graphs/`](./graphs/). Its filename includes the input vehicle mass only, not total mass.
 
 ## What This Optimizer Solves
 
@@ -58,6 +60,8 @@ and every candidate must satisfy two hard constraints:
 peak tractive force <= friction-limited traction
 available spring energy >= required kinetic energy * safety factor
 ```
+
+In both cases, the mass term is the total accelerated mass `m = m_v + m_spring`.
 
 Among feasible points, the optimizer keeps trade-off solutions across three objectives:
 
