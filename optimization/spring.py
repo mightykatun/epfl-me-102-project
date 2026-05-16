@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Analyze one spring-powered vehicle configuration and plot x(t), v(t), and a(t).
 

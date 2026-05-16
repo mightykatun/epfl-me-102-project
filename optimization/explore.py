@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Sweep and Pareto-optimise spring-powered vehicle drivetrain parameters.
 
