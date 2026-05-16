@@ -219,7 +219,7 @@ if target_reached:
     print(f"  Turns to {target_speed_kmh:.1f} km/h     : {turns_to_target:.4f} turns (of {total_spring_turns:.4f} total)")
 else:
     print(f"  Time to {target_speed_kmh:.1f} km/h      : not reached during spring release")
-print(f"  Min turns to {target_speed_kmh:.1f} km/h : {min_turns_to_target:.4f} turns (includes safety factor and drivetrain efficiency)")
+print(f"  Min winds to {target_speed_kmh:.1f} km/h : {min_turns_to_target:.4f} turns (includes safety factor and drivetrain efficiency)")
 
 print(f"\n--- Constraints  (safety factor = {safety_factor}) ---")
 print(f"  [energy]  available    : {available_wheel_energy_j:.4f} J   (multiplied by drivetrain efficiency)")
