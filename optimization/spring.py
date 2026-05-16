@@ -3,7 +3,7 @@
 Analyze one spring-powered vehicle configuration and plot x(t), v(t), and a(t).
 
 Usage:
-    python spring.py <gear_ratio> <wheel_diameter_mm> <vehicle_mass_kg> <spring>
+    python spring.py -r <ratio> -d <diameter_mm> -m <mass_kg> -s <spring>
 """
 
 import os
@@ -24,22 +24,39 @@ import spring_model as sm
 
 
 parser = argparse.ArgumentParser(
-    description="Analyze a single spring-powered vehicle configuration"
+    description="Analyze a single spring-powered vehicle configuration.",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
-parser.add_argument("gear_ratio", type=float, help="Gear ratio rho")
-parser.add_argument("wheel_diameter_mm", type=float, help="Wheel diameter in mm")
-parser.add_argument("mass", type=float, help="Vehicle mass in kg (excluding spring mass)")
-parser.add_argument("spring", help="Spring part number to analyze (e.g., SPF-0927)")
+parser.add_argument(
+    "-r", "--ratio",
+    type=float, required=True, dest="gear_ratio",
+    help="Gear ratio (rho)",
+)
+parser.add_argument(
+    "-d", "--diameter",
+    type=float, required=True, dest="wheel_diameter_mm",
+    help="Wheel diameter [mm]",
+)
+parser.add_argument(
+    "-m", "--mass",
+    type=float, required=True,
+    help="Vehicle mass [kg] (excluding spring mass)",
+)
+parser.add_argument(
+    "-s", "--spring",
+    type=str, required=True,
+    help="Spring part number (e.g. SPF-0927)",
+)
 parser.add_argument(
     "-i", "--interactive",
     action="store_true",
-    help="Show plots interactively as they are being saved (default: False)",
+    help="Show plots interactively instead of only saving them",
 )
 parser.add_argument(
     "-f", "--file",
     default="springs.txt",
     metavar="SPRINGS_FILE",
-    help="Spring data file to load (default: springs.txt)",
+    help="Spring data file to load",
 )
 args = parser.parse_args()
 
@@ -143,6 +160,17 @@ distance_to_target_m = sm.distance_to_speed(
 )
 
 target_reached = bool(np.isfinite(time_to_target_s))
+
+# Compute spring turns to reach target speed
+# theta(t) = theta0 * cos(omega*t), so unwound angle = theta0*(1 - cos(omega*t))
+if target_reached:
+    theta_unwound_at_target_deg = theta0_deg * (1.0 - np.cos(omega_rad_s * time_to_target_s))
+    turns_to_target = theta_unwound_at_target_deg / 360.0
+else:
+    theta_unwound_at_target_deg = np.nan
+    turns_to_target = np.nan
+
+total_spring_turns = theta0_deg / 360.0
 traction_ok = peak_force_n <= max_friction_force_n
 energy_ok = available_wheel_energy_j >= required_mechanical_energy_j
 
@@ -180,6 +208,7 @@ print(f"  Peak speed             : {peak_speed_kmh:.4f} km/h [{peak_speed_m_s:.4
 print(f"  Initial acceleration   : {initial_acceleration_m_s2:.4f} m/s^2 [{(initial_acceleration_m_s2 / 9.81):.2f} g]")
 if target_reached:
     print(f"  Time to {target_speed_kmh:.1f} km/h      : {time_to_target_s:.4f} s at x = {distance_to_target_m:.4f} m")
+    print(f"  Turns to {target_speed_kmh:.1f} km/h     : {turns_to_target:.4f} turns (of {total_spring_turns:.4f} total)")
 else:
     print(f"  Time to {target_speed_kmh:.1f} km/h      : not reached during spring release")
 
@@ -224,7 +253,7 @@ if target_reached:
 
     ax_v.scatter([time_to_target_s], [target_speed_ms], color="red", s=18, zorder=3)
     ax_v.annotate(
-        f"Target v reached at t = {time_to_target_s:.2f} s\nx = {distance_to_target_m:.2f} m",
+        f"Target v reached at t = {time_to_target_s:.2f} s\nx = {distance_to_target_m:.2f} m\nspring turns = {turns_to_target:.2f} / {total_spring_turns:.2f}",
         xy=(time_to_target_s, target_speed_ms),
         xytext=(-10, 10),
         textcoords="offset points",
